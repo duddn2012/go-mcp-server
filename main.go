@@ -23,15 +23,16 @@ func main() {
 	mcpServerManager := mcp.NewServerManager()
 
 	// 4. Service 생성 (명시적 의존성 주입)
-	mcpSvc := services.NewMCPService(db, mcpServerManager)
+	mcpSvc := services.NewMCPService(db)
 
 	// 5. Handler 생성 (명시적 의존성 주입)
 	mcpHandler := handlers.NewMCPHandler(mcpSvc, mcpServerManager)
 
 	// 6. Router 설정
 	router := gin.Default()
-	router.GET("/mcp", mcpHandler.Handle)
-	router.POST("/mcp", mcpHandler.Handle)
+	router.POST("/mcp/tools/sync", mcpHandler.HandleSyncTools)
+	router.GET("/mcp", mcpHandler.HandleMcpServer)
+	router.POST("/mcp", mcpHandler.HandleMcpServer)
 
 	// 7. 서버 시작
 	port := cfg.ServerPort

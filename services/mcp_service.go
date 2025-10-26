@@ -9,14 +9,12 @@ import (
 )
 
 type MCPService struct {
-	db               *gorm.DB
-	mcpServerManager *mcp.ServerManager
+	db *gorm.DB
 }
 
-func NewMCPService(db *gorm.DB, mcpServerManager *mcp.ServerManager) *MCPService {
+func NewMCPService(db *gorm.DB) *MCPService {
 	return &MCPService{
-		db:               db,
-		mcpServerManager: mcpServerManager,
+		db: db,
 	}
 }
 
@@ -37,7 +35,7 @@ func (s *MCPService) GetEnabledTools() ([]models.Tool, error) {
 	return tools, nil
 }
 
-func (s *MCPService) RegisterTools() error {
+func (s *MCPService) SyncTools(mcpServerManager *mcp.ServerManager) error {
 	// DB에서 활성화된 Tool들 가져오기
 	tools, err := s.GetEnabledTools()
 	if err != nil {
@@ -47,7 +45,10 @@ func (s *MCPService) RegisterTools() error {
 	// 각 Tool을 MCP Server에 등록
 	for _, tool := range tools {
 		fmt.Printf("Registering tool: %s\n", tool.Name)
+		// mcpServerManager.DynamicAddTool()
 	}
+
+	mcpServerManager.DynamicAddTool()
 
 	return nil
 }

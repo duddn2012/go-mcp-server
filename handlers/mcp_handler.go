@@ -21,7 +21,20 @@ func NewMCPHandler(service *services.MCPService, mcpServerManager *mcp.ServerMan
 	}
 }
 
-func (h *MCPHandler) Handle(c *gin.Context) {
+func (h *MCPHandler) HandleSyncTools(c *gin.Context) {
+	// Origin Header 검증
+	isValid := h.isHeaderValid(c.Request.Header)
+	if !isValid {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid Origin header",
+		})
+		return
+	}
+
+	h.service.SyncTools(h.mcpServerManager)
+}
+
+func (h *MCPHandler) HandleMcpServer(c *gin.Context) {
 	// Origin Header 검증
 	isValid := h.isHeaderValid(c.Request.Header)
 	if !isValid {
