@@ -9,7 +9,7 @@ HTTP Request
     ↓
 Gin Router
     ↓
-MCPHandler (Origin 검증)
+MCPHandler (Dispatcher 및 Origin 검증)
     ↓
 MCPService (Tool 동기화)
     ↓
