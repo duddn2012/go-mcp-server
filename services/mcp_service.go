@@ -29,7 +29,7 @@ func (s *MCPService) GetAllTools() ([]models.Tool, error) {
 func (s *MCPService) GetEnabledTools() ([]models.Tool, error) {
 	var tools []models.Tool
 
-	if err := s.db.Where(&models.Tool{ToolType: "api_call"}).Find(&tools).Error; err != nil {
+	if err := s.db.Where(&models.Tool{Enabled: true}).Find(&tools).Error; err != nil {
 		return nil, err
 	}
 	return tools, nil
@@ -37,18 +37,22 @@ func (s *MCPService) GetEnabledTools() ([]models.Tool, error) {
 
 func (s *MCPService) SyncTools(mcpServerManager *mcp.ServerManager) error {
 	// DB에서 활성화된 Tool들 가져오기
-	tools, err := s.GetEnabledTools()
+	dbTools, err := s.GetEnabledTools()
 	if err != nil {
 		return fmt.Errorf("failed to get tools: %w", err)
 	}
 
-	// 각 Tool을 MCP Server에 등록
-	for _, tool := range tools {
-		fmt.Printf("Registering tool: %s\n", tool.Name)
-		// mcpServerManager.DynamicAddTool()
-	}
+	// 모든 Tool 제거
+	mcpServerManager.DynamicRemoveAllTool()
 
-	mcpServerManager.DynamicAddTool()
+	// 각 Tool을 MCP Server에 등록
+	for _, tool := range dbTools {
+		fmt.Printf("Registering tool: %s\n", tool.Name)
+		if err := mcpServerManager.DynamicAddTool(tool); err != nil {
+			fmt.Printf("Failed to register tool %s: %v\n", tool.Name, err)
+			// 계속 진행 (하나 실패해도 나머지는 등록)
+		}
+	}
 
 	return nil
 }
