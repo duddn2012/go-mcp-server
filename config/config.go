@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	configInstance *Config
-	once           sync.Once
+	instance *Config
+	once     sync.Once
 )
 
 type Config struct {
@@ -26,38 +26,46 @@ type Config struct {
 
 func Get() *Config {
 	once.Do(func() {
-		configInstance = load()
+		instance = load()
 	})
-
-	return configInstance
+	return instance
 }
 
 func load() *Config {
 	if err := godotenv.Load(); err != nil {
-		log.Println("No .env file found, using environment variables")
+		log.Printf("[Config] .env file not found, using environment variables")
 	}
 
-	// ALLOWED_ORIGINS를 쉼표로 구분된 문자열에서 슬라이스로 변환
-	allowedOriginsStr := getEnv("ALLOWED_ORIGINS", "http://localhost")
-	allowedOrigins := strings.Split(allowedOriginsStr, ",")
-	for i := range allowedOrigins {
-		allowedOrigins[i] = strings.TrimSpace(allowedOrigins[i])
-	}
+	allowedOriginsStr := getEnvOrDefault("ALLOWED_ORIGINS", "http://localhost")
+	allowedOrigins := parseAllowedOrigins(allowedOriginsStr)
 
-	return &Config{
-		DBHost:         getEnv("DB_HOST", "localhost"),
-		DBPort:         getEnv("DB_PORT", "5432"),
-		DBUser:         getEnv("DB_USER", "postgres"),
-		DBPassword:     getEnv("DB_PASSWORD", "postgres"),
-		DBName:         getEnv("DB_NAME", "mcp_server"),
-		ServerPort:     getEnv("SERVER_PORT", "8080"),
+	config := &Config{
+		DBHost:         getEnvOrDefault("DB_HOST", "localhost"),
+		DBPort:         getEnvOrDefault("DB_PORT", "5432"),
+		DBUser:         getEnvOrDefault("DB_USER", "postgres"),
+		DBPassword:     getEnvOrDefault("DB_PASSWORD", "postgres"),
+		DBName:         getEnvOrDefault("DB_NAME", "mcp_server"),
+		ServerPort:     getEnvOrDefault("SERVER_PORT", "8080"),
 		AllowedOrigins: allowedOrigins,
 	}
+
+	log.Printf("[Config] Loaded: DB=%s:%s, Server=:%s, AllowedOrigins=%v",
+		config.DBHost, config.DBPort, config.ServerPort, config.AllowedOrigins)
+
+	return config
 }
 
-func getEnv(key, defaultValue string) string {
+func getEnvOrDefault(key, defaultValue string) string {
 	if value := os.Getenv(key); value != "" {
 		return value
 	}
 	return defaultValue
+}
+
+func parseAllowedOrigins(originsStr string) []string {
+	origins := strings.Split(originsStr, ",")
+	for i := range origins {
+		origins[i] = strings.TrimSpace(origins[i])
+	}
+	return origins
 }

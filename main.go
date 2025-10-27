@@ -17,7 +17,7 @@ func main() {
 	cfg := config.Get()
 
 	// 2. DB 연결 생성
-	db := database.GetDBInstance(cfg)
+	db := database.GetDB(cfg)
 
 	// 3. MCP Server 생성
 	mcpServerManager := mcp.NewServerManager()

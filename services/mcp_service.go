@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"go_mcp_server/mcp"
 	"go_mcp_server/models"
+	"log"
 
 	"gorm.io/gorm"
 )
@@ -13,57 +14,49 @@ type MCPService struct {
 }
 
 func NewMCPService(db *gorm.DB) *MCPService {
-	return &MCPService{
-		db: db,
-	}
+	return &MCPService{db: db}
 }
 
 func (s *MCPService) GetAllTools() ([]models.Tool, error) {
 	var tools []models.Tool
 	if err := s.db.Find(&tools).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get all tools failed: %w", err)
 	}
 	return tools, nil
 }
 
 func (s *MCPService) GetEnabledTools() ([]models.Tool, error) {
 	var tools []models.Tool
-
 	if err := s.db.Where(&models.Tool{Enabled: true}).Find(&tools).Error; err != nil {
-		return nil, err
+		return nil, fmt.Errorf("get enabled tools failed: %w", err)
 	}
 	return tools, nil
 }
 
-func (s *MCPService) SyncTools(mcpServerManager *mcp.ServerManager) error {
-	// DB에서 활성화된 Tool들 가져오기
-	dbTools, err := s.GetEnabledTools()
+func (s *MCPService) SyncTools(sm *mcp.ServerManager) error {
+	tools, err := s.GetEnabledTools()
 	if err != nil {
-		return fmt.Errorf("failed to get tools: %w", err)
+		return err
 	}
 
-	// 모든 Tool 제거
-	mcpServerManager.DynamicRemoveAllTool()
+	sm.RemoveAllTools()
 
-	// 각 Tool을 MCP Server에 등록
-	for _, tool := range dbTools {
-		fmt.Printf("Registering tool: %s\n", tool.Name)
-		if err := mcpServerManager.DynamicAddTool(tool); err != nil {
-			fmt.Printf("Failed to register tool %s: %v\n", tool.Name, err)
-			// 계속 진행 (하나 실패해도 나머지는 등록)
+	successCount := 0
+	for _, tool := range tools {
+		if err := sm.AddTool(tool); err != nil {
+			log.Printf("[MCPService] Failed to add tool %s: %v", tool.Name, err)
+			continue
 		}
+		successCount++
 	}
 
+	log.Printf("[MCPService] Tools synced: %d/%d", successCount, len(tools))
 	return nil
 }
 
-func (s *MCPService) ExecuteTool(toolName string, input map[string]interface{}) (map[string]interface{}, error) {
-	// TODO: 실제 MCP SDK를 사용해서 tool 실행
-
+func (s *MCPService) ExecuteTool(toolName string, input map[string]any) (map[string]any, error) {
 	if toolName == "echo" {
 		return input, nil
 	}
-
 	return nil, fmt.Errorf("tool not found: %s", toolName)
-
 }

@@ -11,21 +11,20 @@ import (
 )
 
 var (
-	dbInstance *gorm.DB
-	once       sync.Once
+	instance *gorm.DB
+	once     sync.Once
 )
 
-func GetDBInstance(cfg *config.Config) *gorm.DB {
+func GetDB(cfg *config.Config) *gorm.DB {
 	once.Do(func() {
 		var err error
-		dbInstance, err = connect(cfg)
-
+		instance, err = connect(cfg)
 		if err != nil {
-			log.Fatalf("failed to connect to database: %v", err)
+			log.Fatalf("[Database] Failed to connect: %v", err)
 		}
-
+		log.Printf("[Database] Connected to %s:%s/%s", cfg.DBHost, cfg.DBPort, cfg.DBName)
 	})
-	return dbInstance
+	return instance
 }
 
 func connect(cfg *config.Config) (*gorm.DB, error) {
@@ -40,9 +39,8 @@ func connect(cfg *config.Config) (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to connect: %w", err)
 	}
 
-	log.Println("Database connected successfully")
 	return db, nil
 }
