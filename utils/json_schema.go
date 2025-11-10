@@ -6,9 +6,9 @@ import (
 	"gorm.io/datatypes"
 )
 
-// ToJSONSchema는 GORM의 datatypes.JSON을 JSON Schema로 변환합니다.
-// MCP Tool 인터페이스는 InputSchema와 OutputSchema가 반드시 type="object"여야 합니다.
-func ToJSONSchema(data datatypes.JSON) map[string]any {
+// JSONToMap은 datatypes.JSON을 map[string]any로 변환합니다.
+// type 필드가 없으면 "object"를 추가합니다.
+func JSONToMap(data datatypes.JSON) map[string]any {
 	if len(data) == 0 {
 		return defaultObjectSchema()
 	}
