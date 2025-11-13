@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -123,20 +124,70 @@ func apiCall(ctx context.Context, _ *mcpsdk.CallToolRequest, args map[string]any
 		return nil, nil, fmt.Errorf("method not found or invalid type in config")
 	}
 
-	log.Printf("[apiCall] %s %s, args: %+v", method, url, args)
+	// body를 io.Reader로 변환
+	var bodyReader io.Reader
+	if method == http.MethodPost || method == http.MethodPut || method == http.MethodPatch {
+		// config와 args에서 body를 병합
+		mergedBody := make(map[string]any)
 
-	httpReq, err := http.NewRequestWithContext(ctx, method, url, nil)
+		// 1. config의 body를 먼저 복사 (기본값)
+		if bodyData, ok := config["body"].(map[string]any); ok {
+			for k, v := range bodyData {
+				mergedBody[k] = v
+			}
+		}
+
+		// 2. args의 body로 덮어쓰기 (런타임 값 우선)
+		if bodyData, ok := args["body"].(map[string]any); ok {
+			for k, v := range bodyData {
+				mergedBody[k] = v
+			}
+		}
+
+		// 병합된 body가 있으면 JSON으로 직렬화
+		if len(mergedBody) > 0 {
+			jsonBody, err := json.Marshal(mergedBody)
+			if err != nil {
+				return nil, nil, fmt.Errorf("failed to marshal body: %w", err)
+			}
+			bodyReader = bytes.NewBuffer(jsonBody)
+		}
+	}
+
+	httpReq, err := http.NewRequestWithContext(ctx, method, url, bodyReader)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Headers 설정 (config에 있으면)
+	// Body가 있으면 Content-Type 헤더 설정
+	if bodyReader != nil {
+		httpReq.Header.Set("Content-Type", "application/json")
+	}
+
+	// config와 args에서 headers를 병합
+	mergedHeaders := make(map[string]string)
+
+	// 1. config의 headers를 먼저 복사 (기본값)
 	if headers, ok := config["headers"].(map[string]any); ok {
 		for key, value := range headers {
 			if strVal, ok := value.(string); ok {
-				httpReq.Header.Set(key, strVal)
+				mergedHeaders[key] = strVal
 			}
 		}
+	}
+
+	// 2. args의 headers로 덮어쓰기 (런타임 값 우선)
+	if headers, ok := args["headers"].(map[string]any); ok {
+		for key, value := range headers {
+			if strVal, ok := value.(string); ok {
+				mergedHeaders[key] = strVal
+			}
+		}
+	}
+
+	// 병합된 headers 설정
+	for key, value := range mergedHeaders {
+		httpReq.Header.Set(key, value)
 	}
 
 	client := &http.Client{Timeout: 30 * time.Second}
@@ -146,16 +197,16 @@ func apiCall(ctx context.Context, _ *mcpsdk.CallToolRequest, args map[string]any
 	}
 	defer resp.Body.Close()
 
-	body, _ := io.ReadAll(resp.Body)
+	respBody, _ := io.ReadAll(resp.Body)
 
 	result := map[string]any{
 		"status": resp.StatusCode,
-		"body":   string(body),
+		"body":   string(respBody),
 	}
 
 	return &mcpsdk.CallToolResult{
 		Content: []mcpsdk.Content{
-			&mcpsdk.TextContent{Text: string(body)},
+			&mcpsdk.TextContent{Text: string(respBody)},
 		},
 	}, result, nil
 }

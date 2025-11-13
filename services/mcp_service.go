@@ -53,10 +53,3 @@ func (s *MCPService) SyncTools(sm *mcp.ServerManager) error {
 	log.Printf("[MCPService] Tools synced: %d/%d", successCount, len(tools))
 	return nil
 }
-
-func (s *MCPService) ExecuteTool(toolName string, input map[string]any) (map[string]any, error) {
-	if toolName == "echo" {
-		return input, nil
-	}
-	return nil, fmt.Errorf("tool not found: %s", toolName)
-}
