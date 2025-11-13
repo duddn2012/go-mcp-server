@@ -43,8 +43,18 @@ MCP SDK (Streamable HTTP Handler)
 - Origin 기반 CORS 검증
 
 
-## 실행 방법
+## 빌드
+os 및 cpu 아키텍쳐는 배포 환경에 따라 가변적
+MAC - GOOS=darwin GOARCH=amd64 go build -o common-mcp-server
+Linux - GOOS=linux GOARCH=amd64 go build -o common-mcp-server
 
+## 실행 방법
+- 코드 기반
 ```bash
 go run main.go
+```
+
+- 바이너리 실행
+```bash
+./common-mcp-server
 ```
