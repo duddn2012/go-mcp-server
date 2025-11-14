@@ -1,60 +1,74 @@
 # Go MCP Server
 
-DB 기반 MCP Tool 관리 및 동기화를 지원하는 Go HTTP 서버
+MCP(Model Context Protocol) 서버 구현을 위한 Go 기반 프로젝트입니다.
 
 ## 아키텍처
 
+**Layered Architecture** 패턴을 사용합니다. 자세한 내용은 [ARCHITECTURE.md](./ARCHITECTURE.md)를 참조하세요.
+
 ```
-HTTP Request
-    ↓
-Gin Router
-    ↓
-MCPHandler (Origin 검증)
-    ↓
-MCPService (Tool 동기화)
-    ↓
-ServerManager (Tool 등록/제거)
-    ↓
-MCP SDK (Streamable HTTP Handler)
+Handler → Service → Repository → Model
 ```
 
-### 레이어 구조
+## 디렉토리 구조
 
-- **handlers/**: HTTP 엔드포인트 및 Origin 검증
-- **services/**: DB Tool 조회 및 동기화 로직
-- **mcp/**: MCP Server 및 Tool 관리
-- **models/**: DB 모델 (Tool)
-- **database/**: PostgreSQL 연결
-- **config/**: 환경 설정
-- **utils/**: JSON Schema 변환 유틸리티
+```
+go_mcp_server/
+├── cmd/server/              # 애플리케이션 진입점
+├── internal/                # 비공개 애플리케이션 코드
+│   ├── model/               # 데이터 모델
+│   ├── repository/          # 데이터 접근 계층
+│   ├── service/             # 비즈니스 로직 계층
+│   ├── handler/             # HTTP 핸들러 계층
+│   ├── router/              # 라우팅
+│   ├── mcp/                 # MCP 서버 로직
+│   └── infrastructure/      # 인프라 (Config, DB)
+├── pkg/                     # 공용 라이브러리
+└── test/                    # 테스트 유틸리티
+```
 
-## 기술 스택
+## 빌드 및 실행
 
-- **Gin**: Web Framework
-- **GORM**: ORM
-- **PostgreSQL**: Database
-- **MCP SDK**: Go MCP SDK v1.0.0
-
-## 주요 기능
-
-- DB에 저장된 Tool을 동적으로 로드 및 등록
-- Tool 동기화 API (`/mcp/tools/sync`)
-- MCP 프로토콜 지원 (Streamable HTTP)
-- Origin 기반 CORS 검증
-
-
-## 빌드
-os 및 cpu 아키텍쳐는 배포 환경에 따라 가변적
-MAC - GOOS=darwin GOARCH=amd64 go build -o common-mcp-server
-Linux - GOOS=linux GOARCH=amd64 go build -o common-mcp-server
-
-## 실행 방법
-- 코드 기반
 ```bash
-go run main.go
+# 빌드
+go build -o mcp-server ./cmd/server
+
+# 실행
+./mcp-server
 ```
 
-- 바이너리 실행
-```bash
-./common-mcp-server
+## 환경 변수
+
+`.env` 파일에 다음 변수를 설정하세요:
+
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=mcp_server
+SERVER_PORT=8080
+ALLOWED_ORIGINS=http://localhost
 ```
+
+## API 엔드포인트
+
+- `POST /mcp/tools/sync` - Tool 동기화
+- `GET /mcp` - MCP SSE 연결
+- `POST /mcp` - MCP 요청 처리
+
+## 개발
+
+### 테스트
+
+```bash
+go test ./...
+```
+
+### 새 기능 추가
+
+1. `internal/model/` - 모델 정의
+2. `internal/repository/` - 데이터 접근 인터페이스
+3. `internal/service/` - 비즈니스 로직
+4. `internal/handler/` - HTTP 핸들러
+5. `internal/router/` - 라우트 등록
