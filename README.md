@@ -4,8 +4,6 @@ MCP(Model Context Protocol) 서버 구현을 위한 Go 기반 프로젝트입니
 
 ## 아키텍처
 
-**Layered Architecture** 패턴을 사용합니다. 자세한 내용은 [ARCHITECTURE.md](./ARCHITECTURE.md)를 참조하세요.
-
 ```
 Handler → Service → Repository → Model
 ```
@@ -35,20 +33,6 @@ go build -o mcp-server ./cmd/server
 
 # 실행
 ./mcp-server
-```
-
-## 환경 변수
-
-`.env` 파일에 다음 변수를 설정하세요:
-
-```env
-DB_HOST=localhost
-DB_PORT=5432
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_NAME=mcp_server
-SERVER_PORT=8080
-ALLOWED_ORIGINS=http://localhost
 ```
 
 ## API 엔드포인트
